@@ -3,10 +3,14 @@ pipeline{
     tools{
         maven '3.9.6'
     }
+    environment{
+        CI = true
+        JFROGCRED = credential(jfrogcred)
+    }
     stages{
         stage('Build'){
             steps{
-                sh 'mvn compile'
+                sh 'mvn clean compile'
             }
         }
         stage('Test'){
@@ -16,7 +20,18 @@ pipeline{
         }
         stage('Package'){
             steps{
-                sh 'mvn package'
+                sh 'mvn clean package'
+            }
+        }
+        stage('upload'){
+            agent{
+                docker {
+                    image 'releases-docker.jfrog.io/jfrog/jfrog-cli-v2:2.2.0' 
+                    reuseNode true
+                }
+            }
+            steps{
+                sh "jfrog rt upload --url http://ubuntu@ec2-52-66-201-24.ap-south-1.compute.amazonaws.com:8081/artifactory/ --user ${JFROGCRED_USR} --password ${JFROGCRED_PSW} target/spring-petclinic-3.2.0-SNAPSHOT.jar petclinic-key-01/"
             }
         }
     }
